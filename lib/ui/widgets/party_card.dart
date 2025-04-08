@@ -4,7 +4,7 @@ import '../../models/party.dart';
 class PartyCard extends StatelessWidget {
   final Party party;
 
-  PartyCard({required this.party});
+  const PartyCard({super.key, required this.party});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class PartyCard extends StatelessWidget {
           onPressed: () {
             // TODO: Navigate to party details page
           },
-          child: Text('Join'),
+          child: const Text('Join'),
         ),
       ),
     );

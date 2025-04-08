@@ -8,21 +8,21 @@ class PartyDetailPage extends StatelessWidget {
   final String partyId;
   final PartyService partyService = PartyService();
 
-  PartyDetailPage({required this.partyId});
+  PartyDetailPage({super.key, required this.partyId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Party Details')),
+      appBar: AppBar(title: const Text('Party Details')),
       body: FutureBuilder<Party>(
         future: partyService.fetchPartyDetails(partyId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error loading party details'));
+            return const Center(child: Text('Error loading party details'));
           } else if (!snapshot.hasData) {
-            return Center(child: Text('No party details available'));
+            return const Center(child: Text('No party details available'));
           }
 
           var party = snapshot.data!;  // Safely access the party data after it's loaded
@@ -60,8 +60,8 @@ class PartyDetailPage extends StatelessWidget {
               if (party.isHost)
                 Row(
                   children: [
-                    IconButton(icon: Icon(Icons.skip_next), onPressed: () => partyService.skipSong(partyId)),
-                    IconButton(icon: Icon(Icons.play_arrow), onPressed: () => partyService.playPause(partyId)),
+                    IconButton(icon: const Icon(Icons.skip_next), onPressed: () => partyService.skipSong(partyId)),
+                    IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => partyService.playPause(partyId)),
                   ],
                 ),
             ],

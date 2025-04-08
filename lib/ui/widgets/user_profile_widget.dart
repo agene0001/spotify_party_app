@@ -4,7 +4,7 @@ import '../../models/user.dart';
 class UserProfileWidget extends StatelessWidget {
   final User user;
 
-  UserProfileWidget({required this.user});
+  const UserProfileWidget({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -14,8 +14,8 @@ class UserProfileWidget extends StatelessWidget {
           backgroundImage: NetworkImage(user.profileImageUrl),
           radius: 40,
         ),
-        SizedBox(height: 10),
-        Text(user.username, style: TextStyle(fontSize: 20)),
+        const SizedBox(height: 10),
+        Text(user.username, style: const TextStyle(fontSize: 20)),
         Text('Spotify ID: ${user.spotifyId}'),
       ],
     );
