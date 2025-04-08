@@ -3,6 +3,7 @@ import 'package:spotify_party_app/services/party_service.dart';
 import 'package:spotify_party_app/ui/widgets/party_card.dart';
 
 class HomePage extends StatelessWidget {
+
   final PartyService partyService = PartyService();
 
   @override
@@ -16,14 +17,14 @@ class HomePage extends StatelessWidget {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error fetching parties'));
-          } else if (!snapshot.hasData || snapshot.data.isEmpty) {
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text('No active parties.'));
           }
           var parties = snapshot.data;
           return ListView.builder(
-            itemCount: parties.length,
+            itemCount: parties?.length,
             itemBuilder: (context, index) {
-              return PartyCard(party: parties[index]);
+              return PartyCard(party: parties![index]);
             },
           );
         },

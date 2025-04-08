@@ -20,7 +20,7 @@ class SpotifyPartyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         // '/party-detail': (context) => PartyDetailPage(),
         // '/search-song': (context) => SearchSongPage(),
-        '/settings': (context) => SettingsPage(),
+        // '/settings': (context) => SettingsPage(),
       },
     );
   }
