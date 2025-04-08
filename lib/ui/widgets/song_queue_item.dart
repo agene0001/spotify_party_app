@@ -4,7 +4,7 @@ import '../../models/song.dart';
 class SongQueueItem extends StatelessWidget {
   final Song song;
 
-  SongQueueItem({required this.song});
+  const SongQueueItem({super.key, required this.song});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +13,7 @@ class SongQueueItem extends StatelessWidget {
       title: Text(song.title),
       subtitle: Text(song.artist),
       trailing: IconButton(
-        icon: Icon(Icons.thumb_up),
+        icon: const Icon(Icons.thumb_up),
         onPressed: () {
           // TODO: Handle upvote action
         },
