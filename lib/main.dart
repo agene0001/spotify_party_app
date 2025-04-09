@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'ui/pages/auth_page.dart';
 import 'ui/pages/home_page.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
-
+  await Firebase.initializeApp();
   runApp(const SpotifyPartyApp());
 }
 
