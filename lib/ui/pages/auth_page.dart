@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spotify_party_app/services/auth_service.dart';
 import 'package:spotify_party_app/ui/widgets/spotify_login_button.dart';
-import 'dart:html' as html; // Only import for web
 
 class AuthenticationPage extends StatefulWidget {
   const AuthenticationPage({super.key});
@@ -32,7 +31,9 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
 
         if (accessToken != null) {
           if (kDebugMode) {
-            print('Found valid access token from callback, navigating to home...');
+            print(
+              'Found valid access token from callback, navigating to home...',
+            );
           }
           // Use Future.delayed to avoid calling setState during build
           Future.delayed(Duration.zero, () {
@@ -77,16 +78,17 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Error"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          )
-        ],
-      ),
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Error"),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
     );
   }
 
@@ -95,18 +97,19 @@ class _AuthenticationPageState extends State<AuthenticationPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Welcome to Spotify Party')),
       body: Center(
-        child: _isLoading
-            ? const CircularProgressIndicator()
-            : Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/home.png', height: 100),
-            const SizedBox(height: 20),
-            const Text('Login with your Spotify account'),
-            const SizedBox(height: 20),
-            SpotifyLoginButton(onPressed: _handleLogin),
-          ],
-        ),
+        child:
+            _isLoading
+                ? const CircularProgressIndicator()
+                : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('assets/images/home.png', height: 100),
+                    const SizedBox(height: 20),
+                    const Text('Login with your Spotify account'),
+                    const SizedBox(height: 20),
+                    SpotifyLoginButton(onPressed: _handleLogin),
+                  ],
+                ),
       ),
     );
   }

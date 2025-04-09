@@ -215,7 +215,7 @@ class AuthService {
 
     // This function won't actually return here since we're redirecting
     // The code handling will need to be done when the app loads after redirect
-    return null;
+    return "";
   }
   /// Exchanges an authorization code for access and refresh tokens.
   Future<String?> _exchangeCodeForTokens(String code) async {
