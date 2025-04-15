@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user.dart';
 
 class UserProfileWidget extends StatelessWidget {
-  final User user;
+  final SpotifyUser user;
 
   const UserProfileWidget({super.key, required this.user});
 

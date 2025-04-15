@@ -1,142 +1,175 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/party.dart';
-import 'package:spotify_party_app/services/auth_service.dart';  // Assuming AuthService is already defined
+import 'package:spotify_party_app/services/auth_service.dart';
+import 'package:spotify_party_app/services/user_service.dart';
 
 class PartyService {
-  final String baseUrl = 'https://your-api.com/parties';
-  final AuthService authService = AuthService(); // Create an instance of AuthService
+  // Use Firestore instance instead of REST API
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthService authService = AuthService();
+  final UserService userService;  // Add userService here
+  PartyService({required this.userService});
+  // Collection reference for parties
+  CollectionReference get _partiesCollection => _firestore.collection('parties');
 
+  // Get active parties
   Future<List<Party>> getActiveParties() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/active'));
+      // Query active parties from Firestore
+      final QuerySnapshot snapshot = await _partiesCollection
+          .where('isActive', isEqualTo: true)
+          .get();
 
-      if (response.statusCode == 200) {
-        List<dynamic> jsonData = json.decode(response.body);
-        return jsonData.map((data) => Party.fromJson(data)).toList();
-      } else {
-        throw Exception('Failed to load parties');
-      }
+      return snapshot.docs
+          .map((doc) => Party.fromFirestore(doc))
+          .toList();
     } catch (e) {
+      print('Error getting active parties: $e');
       throw Exception('Failed to load parties: $e');
     }
   }
 
-  Future<void> createParty(String name) async {
+  // Create a new party
+  Future<String> createParty(String name) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/create'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'name': name}),
-      );
-
-      if (response.statusCode != 201) {
-        throw Exception('Failed to create party');
+      final token = await authService.getAccessToken();
+      if (token == null) {
+        throw Exception('Authentication failed. No access token.');
       }
+
+      // Get current user ID
+      final userId = userService.getUserId(); // You'll need to implement this
+
+      // Create new party document in Firestore
+      final docRef = await _partiesCollection.add({
+        'name': name,
+        'createdBy': userId,
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+        'currentTrack': null,
+        'isPlaying': false,
+        'participants': [userId]
+      });
+
+      return docRef.id; // Return the new party ID
     } catch (e) {
+      print('Error creating party: $e');
       throw Exception('Failed to create party: $e');
     }
   }
-  // Fetch active parties from the backend
+
+  // Keep the original method name for backwards compatibility
   Future<List<Party>> fetchActiveParties() async {
-    try {
-      final token = await authService.getAccessToken();  // Get the access token from AuthService
-      if (token == null) {
-        throw Exception('Authentication failed. No access token.');
-      }
-
-      // Make a GET request to fetch active parties
-      final response = await http.get(
-        Uri.parse('$baseUrl/parties'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      // If the server returns a successful response, parse the response body
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-        return data.map((partyJson) => Party.fromJson(partyJson)).toList();
-      } else {
-        // Handle error from server (non-200 status code)
-        throw Exception('Failed to load active parties');
-      }
-    } catch (e) {
-      // Handle exceptions (e.g., network errors)
-      print('Error fetching active parties: $e');
-      throw Exception('Error fetching active parties');
-    }
+    return getActiveParties();
   }
-  // Skip the current song of the party
+
+  // Skip the current song
   Future<void> skipSong(String partyId) async {
     try {
-      final token = await authService.getAccessToken(); // Get the access token from AuthService
+      final token = await authService.getAccessToken();
       if (token == null) {
         throw Exception('Authentication failed. No access token.');
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/$partyId/skip'), // API endpoint to skip the song (modify if needed)
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      // Update the party document with skip request
+      await _partiesCollection.doc(partyId).update({
+        'skipRequested': true,
+        'lastUpdated': FieldValue.serverTimestamp()
+      });
 
-      if (response.statusCode == 200) {
-        // Successfully skipped the song
-        print('Song skipped successfully!');
-      } else {
-        throw Exception('Failed to skip the song');
-      }
+      print('Skip request sent successfully!');
     } catch (e) {
       print('Error skipping song: $e');
       throw Exception('Error skipping song');
     }
   }
+
+  // Toggle play/pause
   Future<void> playPause(String partyId) async {
     try {
-      final token = await authService.getAccessToken(); // Get the access token
+      final token = await authService.getAccessToken();
       if (token == null) {
         throw Exception('Authentication failed. No access token.');
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/$partyId/play-pause'), // Adjust if your backend uses a different path
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      // Get current party status
+      DocumentSnapshot partyDoc = await _partiesCollection.doc(partyId).get();
 
-      if (response.statusCode == 200) {
-        print('Playback toggled successfully.');
-      } else {
-        throw Exception('Failed to toggle playback');
+      if (!partyDoc.exists) {
+        throw Exception('Party not found');
       }
+
+      Map<String, dynamic> partyData = partyDoc.data() as Map<String, dynamic>;
+      bool isCurrentlyPlaying = partyData['isPlaying'] ?? false;
+
+      // Toggle play state
+      await _partiesCollection.doc(partyId).update({
+        'isPlaying': !isCurrentlyPlaying,
+        'lastUpdated': FieldValue.serverTimestamp()
+      });
+
+      print('Playback toggled successfully.');
     } catch (e) {
       print('Error toggling play/pause: $e');
       throw Exception('Error toggling play/pause');
     }
   }
-  // Fetch details of a specific party by its ID
+
+  // Fetch party details
   Future<Party> fetchPartyDetails(String partyId) async {
     try {
-      final token = await authService.getAccessToken(); // Get the access token from AuthService
+      final token = await authService.getAccessToken();
       if (token == null) {
         throw Exception('Authentication failed. No access token.');
       }
 
-      // Make a GET request to fetch the party details
-      final response = await http.get(
-        Uri.parse('$baseUrl/$partyId'), // URL including the partyId
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      // Get party document from Firestore
+      final DocumentSnapshot doc = await _partiesCollection.doc(partyId).get();
 
-      if (response.statusCode == 200) {
-        // Parse the response body and convert it into a Party object
-        var data = json.decode(response.body);
-        return Party.fromJson(data);  // Assuming Party has a fromJson method
-      } else {
-        // Handle server errors
-        throw Exception('Failed to load party details');
+      if (!doc.exists) {
+        throw Exception('Party not found');
       }
+
+      return Party.fromFirestore(doc);
     } catch (e) {
-      // Handle network or other exceptions
       print('Error fetching party details: $e');
       throw Exception('Error fetching party details');
+    }
+  }
+
+  // NEW METHOD: Listen to real-time updates for a party
+  Stream<Party> listenToParty(String partyId) {
+    return _partiesCollection
+        .doc(partyId)
+        .snapshots()
+        .map((snapshot) => Party.fromFirestore(snapshot));
+  }
+
+  // NEW METHOD: Join a party
+  Future<void> joinParty(String partyId) async {
+    try {
+      final userId = userService.getUserId();
+
+      await _partiesCollection.doc(partyId).update({
+        'participants': FieldValue.arrayUnion([userId])
+      });
+    } catch (e) {
+      print('Error joining party: $e');
+      throw Exception('Error joining party');
+    }
+  }
+
+  // NEW METHOD: Leave a party
+  Future<void> leaveParty(String partyId) async {
+    try {
+      final userId = userService.getUserId();
+
+      await _partiesCollection.doc(partyId).update({
+        'participants': FieldValue.arrayRemove([userId])
+      });
+    } catch (e) {
+      print('Error leaving party: $e');
+      throw Exception('Error leaving party');
     }
   }
 }

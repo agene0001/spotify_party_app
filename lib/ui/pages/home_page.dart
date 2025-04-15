@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:spotify_party_app/services/party_service.dart';
+import 'package:spotify_party_app/services/user_service.dart';
 import 'package:spotify_party_app/ui/widgets/party_card.dart';
 
 class HomePage extends StatelessWidget {
+  final UserService userService;
+  final PartyService partyService;
 
-  final PartyService partyService = PartyService();
-
-  HomePage({super.key});
+  // Initialize userService and partyService inside the constructor
+  HomePage({super.key})
+      : userService = UserService(),
+        partyService = PartyService(userService: UserService());
 
   @override
   Widget build(BuildContext context) {

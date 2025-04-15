@@ -1,11 +1,11 @@
-class User {
+class SpotifyUser {
   final String id;
   final String username;
   final String profileImageUrl;
   final String spotifyId;
   final bool notificationsEnabled;
 
-  User({
+  SpotifyUser({
     required this.id,
     required this.username,
     required this.profileImageUrl,
@@ -13,8 +13,8 @@ class User {
     required this.notificationsEnabled,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
+  factory SpotifyUser.fromJson(Map<String, dynamic> json) {
+    return SpotifyUser(
       id: json['id'],
       username: json['username'],
       profileImageUrl: json['profile_image_url'],

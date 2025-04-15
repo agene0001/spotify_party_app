@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:js_interop';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -7,10 +8,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_web_auth/flutter_web_auth.dart'; // Import flutter_web_auth
 import 'package:uuid/uuid.dart'; // For generating state parameter
 import 'package:web/web.dart' as web;
+import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   // --- Spotify Configuration ---
   final String? _clientId = dotenv.env['SPOTIFY_CLIENT_ID'];
   final String? _clientSecret = dotenv.env['SPOTIFY_CLIENT_SECRET'];
+  final String? _googleOath = dotenv.env['GOOGLE_OATH_CLIENT_ID'];
   // IMPORTANT: Use the EXACT Redirect URI registered in Spotify Dashboard
   final String _redirectUri = kIsWeb?"http://localhost:8000/home":'spotifypartyapp://callback';
   // Define the callback URL scheme (must match the scheme in _redirectUri)
@@ -18,7 +21,7 @@ class AuthService {
 
   final String _authorizationEndpoint = 'https://accounts.spotify.com/authorize';
   final String _tokenEndpoint = 'https://accounts.spotify.com/api/token';
-
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   // Define the scopes (permissions) your app needs
   // See: https://developer.spotify.com/documentation/web-api/concepts/scopes
   final String _scopes = [
@@ -32,7 +35,13 @@ class AuthService {
     'streaming', // Required for playback control if you implement it
     // Add other scopes as needed
   ].join(' '); // Join scopes with spaces
+  late final GoogleSignIn _googleSignIn;
 
+  AuthService() {
+    _googleSignIn = GoogleSignIn(
+      clientId: '$_googleOath.apps.googleusercontent.com',
+    );
+  }
   // --- Secure Storage ---
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final String _accessTokenKey = 'spotify_access_token';
@@ -66,9 +75,9 @@ class AuthService {
     });
 
     if (kIsWeb) {
-      return _loginWithSpotifyWeb(state,authUri);
+      return await _loginWithSpotifyWeb(state,authUri);
     } else {
-      return _loginWithSpotifyMobile(state,authUri);
+      return await _loginWithSpotifyMobile(state,authUri);
     }
   }
   Future<String?> checkForSpotifyAuthCallback() async {
@@ -212,10 +221,10 @@ class AuthService {
 
     // Redirect the browser to Spotify login
     web.window.location.href = authUri.toString();
+    return null;
 
     // This function won't actually return here since we're redirecting
     // The code handling will need to be done when the app loads after redirect
-    return "";
   }
   /// Exchanges an authorization code for access and refresh tokens.
   Future<String?> _exchangeCodeForTokens(String code) async {
@@ -323,7 +332,39 @@ class AuthService {
 
     return null; // Refresh failed
   }
+  Future<User?> loginWithFirebase({required String email, required String password}) async {
+    try {
+      UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      throw Exception('Failed to sign in with email and password: $e');
+    }
+  }
+  // Login with Google
+  Future<User?> loginWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('Google sign-in was aborted');
+      }
 
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in with Firebase using the Google credentials
+      UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+      return userCredential.user;
+    } catch (e) {
+      throw Exception('Google sign-in failed: $e');
+    }
+  }
   /// Stores tokens securely and calculates expiry time.
   Future<void> _storeTokens(String accessToken, String refreshToken, int expiresInSeconds) async {
     final DateTime expiryTime = DateTime.now().add(Duration(seconds: expiresInSeconds));
